@@ -1,0 +1,121 @@
+--
+-- PostgreSQL database dump
+--
+
+-- Dumped from database version 9.0.5
+-- Dumped by pg_dump version 9.0.5
+-- Started on 2012-07-27 11:43:29 CDT
+
+SET statement_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = off;
+SET check_function_bodies = false;
+SET client_min_messages = warning;
+SET escape_string_warning = off;
+
+SET search_path = public, pg_catalog;
+
+--
+-- TOC entry 2012 (class 0 OID 1310434)
+-- Dependencies: 153
+-- Data for Name: competition_suite; Type: TABLE DATA; Schema: public; Owner: aortlieb
+--
+
+COPY competition_suite (id, name, description) FROM stdin;
+68eb8fc5-0de2-4384-9c36-ea3aed14a14e	Best Teachers	Best teachers by subject
+a7a0d568-8ef6-465c-be39-2811526aebaa	Linux Server Packages	What are your favorite desktop packages?
+b0c17fd2-055e-4207-8547-e47f889b1b14	Congressperson	Who is your favorite congressperson?
+4ba1cf7e-fed5-4194-bba8-d7616ad39e64	Linux Desktop Packages	What linux desktop packages do you prefer to use?
+\.
+
+
+--
+-- TOC entry 2009 (class 0 OID 1310356)
+-- Dependencies: 150 2012
+-- Data for Name: competition; Type: TABLE DATA; Schema: public; Owner: aortlieb
+--
+
+COPY competition (id, name, description, suite_id) FROM stdin;
+67c74df9-dd67-4a84-a0b7-c5eb206da793	Desktop Environment	\N	4ba1cf7e-fed5-4194-bba8-d7616ad39e64
+3b9a501c-5353-46fa-9576-120ae6b56424	Mail Client	\N	4ba1cf7e-fed5-4194-bba8-d7616ad39e64
+c21e1bca-46ed-405e-87c9-bd6344dcdc08	Instant Messaging	\N	4ba1cf7e-fed5-4194-bba8-d7616ad39e64
+774c9821-d3e6-441c-a39e-97c44b015ab3	Web Browser	\N	4ba1cf7e-fed5-4194-bba8-d7616ad39e64
+b34d85ab-3513-47a1-88d4-44caf27c978f	Interpreted Programming Language	\N	\N
+09d9e318-6514-4023-8c5b-41c524f50e6c	Native Programming Language	\N	\N
+599b7b7f-319e-48dd-a4ee-5762edf60f4a	VM Runtime Programming Language	\N	\N
+\.
+
+
+--
+-- TOC entry 2006 (class 0 OID 1310269)
+-- Dependencies: 142
+-- Data for Name: person; Type: TABLE DATA; Schema: public; Owner: aortlieb
+--
+
+COPY person (id, "nameFull") FROM stdin;
+6d0df981-8abf-4339-9282-470e6a2649c2	Andy Ortlieb
+011fbb4b-4f9d-47be-9adc-778a150706a4	Leroy Buckingham
+2871e1b2-8356-401f-b170-d183eb61ce93	Jose Chung
+\.
+
+
+--
+-- TOC entry 2007 (class 0 OID 1310278)
+-- Dependencies: 143 2006
+-- Data for Name: widget; Type: TABLE DATA; Schema: public; Owner: aortlieb
+--
+
+COPY widget (id, name, submitted_at, submitted_by) FROM stdin;
+57e30073-4978-4c80-ab91-87232ae3e983	Somewhat Cool by Andy Ortlieb	2012-07-25 12:00:00	6d0df981-8abf-4339-9282-470e6a2649c2
+67d368d1-d9f5-4fde-b808-05eb0a9e3424	Uninteresting by Jose Chung	2012-07-25 13:00:00	2871e1b2-8356-401f-b170-d183eb61ce93
+9eb9bd50-e2ad-4047-b0c6-2bfd4b2687dd	Controversial Cool by Leroy Buckingham	2012-07-25 14:00:00	011fbb4b-4f9d-47be-9adc-778a150706a4
+c7acd943-45e2-4afb-a25d-ba5ad24b71f6	Very Cool by Leroy Buckingham	2012-07-25 16:34:15.115198	011fbb4b-4f9d-47be-9adc-778a150706a4
+ecaf7999-581e-444c-9fcd-15c91f0cad77	UNCOOL By Andy Ortlieb	2012-07-26 09:16:15.429271	6d0df981-8abf-4339-9282-470e6a2649c2
+02f6fedf-70fb-4025-83ab-09d7212d2707	Gnome-shell	2012-07-27 11:34:19.413745	6d0df981-8abf-4339-9282-470e6a2649c2
+\.
+
+
+--
+-- TOC entry 2010 (class 0 OID 1310392)
+-- Dependencies: 151 2009 2007
+-- Data for Name: competition_widget; Type: TABLE DATA; Schema: public; Owner: aortlieb
+--
+
+COPY competition_widget (id, competition_id, widget_id) FROM stdin;
+d4451a8a-50f3-47a2-99d8-2293ce6512dc	67c74df9-dd67-4a84-a0b7-c5eb206da793	02f6fedf-70fb-4025-83ab-09d7212d2707
+\.
+
+
+--
+-- TOC entry 2011 (class 0 OID 1310416)
+-- Dependencies: 152 2006 2010
+-- Data for Name: competition_widget_vote; Type: TABLE DATA; Schema: public; Owner: aortlieb
+--
+
+COPY competition_widget_vote (competition_widget_id, voter_id, value, casted, cancelled) FROM stdin;
+\.
+
+
+--
+-- TOC entry 2008 (class 0 OID 1310307)
+-- Dependencies: 144
+-- Data for Name: widget_vote; Type: TABLE DATA; Schema: public; Owner: aortlieb
+--
+
+COPY widget_vote (widget_id, voter_id, value, casted, cancelled) FROM stdin;
+57e30073-4978-4c80-ab91-87232ae3e983	011fbb4b-4f9d-47be-9adc-778a150706a4	1	2012-07-25 12:30:00	\N
+57e30073-4978-4c80-ab91-87232ae3e983	2871e1b2-8356-401f-b170-d183eb61ce93	1	2012-07-25 12:52:00	\N
+ecaf7999-581e-444c-9fcd-15c91f0cad77	2871e1b2-8356-401f-b170-d183eb61ce93	-1	2012-07-26 09:16:44.095628	\N
+9eb9bd50-e2ad-4047-b0c6-2bfd4b2687dd	2871e1b2-8356-401f-b170-d183eb61ce93	1	2012-07-26 09:38:04.775108	\N
+9eb9bd50-e2ad-4047-b0c6-2bfd4b2687dd	6d0df981-8abf-4339-9282-470e6a2649c2	-1	2012-07-26 09:38:38.950799	\N
+9eb9bd50-e2ad-4047-b0c6-2bfd4b2687dd	011fbb4b-4f9d-47be-9adc-778a150706a4	1	2012-07-25 10:00:04.775108	\N
+ecaf7999-581e-444c-9fcd-15c91f0cad77	011fbb4b-4f9d-47be-9adc-778a150706a4	-1	2012-07-26 11:09:35.026216	\N
+\.
+
+
+-- Completed on 2012-07-27 11:43:29 CDT
+
+--
+-- PostgreSQL database dump complete
+--
+

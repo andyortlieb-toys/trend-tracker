@@ -1,0 +1,2243 @@
+--
+-- PostgreSQL database dump
+--
+
+-- Dumped from database version 9.0.5
+-- Dumped by pg_dump version 9.0.5
+-- Started on 2012-07-27 11:42:06 CDT
+
+SET statement_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = off;
+SET check_function_bodies = false;
+SET client_min_messages = warning;
+SET escape_string_warning = off;
+
+--
+-- TOC entry 581 (class 2612 OID 11574)
+-- Name: plpgsql; Type: PROCEDURAL LANGUAGE; Schema: -; Owner: -
+--
+
+CREATE OR REPLACE PROCEDURAL LANGUAGE plpgsql;
+
+
+SET search_path = public, pg_catalog;
+
+--
+-- TOC entry 544 (class 0 OID 0)
+-- Name: citext; Type: SHELL TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE citext;
+
+
+--
+-- TOC entry 162 (class 1255 OID 17851)
+-- Dependencies: 5 544
+-- Name: citextin(cstring); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION citextin(cstring) RETURNS citext
+    LANGUAGE internal IMMUTABLE STRICT
+    AS $$textin$$;
+
+
+--
+-- TOC entry 166 (class 1255 OID 17852)
+-- Dependencies: 5 544
+-- Name: citextout(citext); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION citextout(citext) RETURNS cstring
+    LANGUAGE internal IMMUTABLE STRICT
+    AS $$textout$$;
+
+
+--
+-- TOC entry 167 (class 1255 OID 17853)
+-- Dependencies: 5 544
+-- Name: citextrecv(internal); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION citextrecv(internal) RETURNS citext
+    LANGUAGE internal STABLE STRICT
+    AS $$textrecv$$;
+
+
+--
+-- TOC entry 168 (class 1255 OID 17854)
+-- Dependencies: 5 544
+-- Name: citextsend(citext); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION citextsend(citext) RETURNS bytea
+    LANGUAGE internal STABLE STRICT
+    AS $$textsend$$;
+
+
+--
+-- TOC entry 543 (class 1247 OID 17850)
+-- Dependencies: 5 167 162 166 168
+-- Name: citext; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE citext (
+    INTERNALLENGTH = variable,
+    INPUT = citextin,
+    OUTPUT = citextout,
+    RECEIVE = citextrecv,
+    SEND = citextsend,
+    CATEGORY = 'S',
+    ALIGNMENT = int4,
+    STORAGE = extended
+);
+
+
+--
+-- TOC entry 547 (class 0 OID 0)
+-- Name: cube; Type: SHELL TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE cube;
+
+
+--
+-- TOC entry 202 (class 1255 OID 17939)
+-- Dependencies: 5 547
+-- Name: cube_in(cstring); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION cube_in(cstring) RETURNS cube
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/cube', 'cube_in';
+
+
+--
+-- TOC entry 205 (class 1255 OID 17942)
+-- Dependencies: 5 547
+-- Name: cube_out(cube); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION cube_out(cube) RETURNS cstring
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/cube', 'cube_out';
+
+
+--
+-- TOC entry 546 (class 1247 OID 17938)
+-- Dependencies: 202 5 205
+-- Name: cube; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE cube (
+    INTERNALLENGTH = variable,
+    INPUT = cube_in,
+    OUTPUT = cube_out,
+    ALIGNMENT = double,
+    STORAGE = plain
+);
+
+
+--
+-- TOC entry 2010 (class 0 OID 0)
+-- Dependencies: 546
+-- Name: TYPE cube; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TYPE cube IS 'multi-dimensional cube ''(FLOAT-1, FLOAT-2, ..., FLOAT-N), (FLOAT-1, FLOAT-2, ..., FLOAT-N)''';
+
+
+--
+-- TOC entry 221 (class 1255 OID 17959)
+-- Dependencies: 5 546
+-- Name: cube_dim(cube); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION cube_dim(cube) RETURNS integer
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/cube', 'cube_dim';
+
+
+--
+-- TOC entry 220 (class 1255 OID 17958)
+-- Dependencies: 5 546 546
+-- Name: cube_distance(cube, cube); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION cube_distance(cube, cube) RETURNS double precision
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/cube', 'cube_distance';
+
+
+--
+-- TOC entry 230 (class 1255 OID 17966)
+-- Dependencies: 546 5
+-- Name: cube_is_point(cube); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION cube_is_point(cube) RETURNS boolean
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/cube', 'cube_is_point';
+
+
+--
+-- TOC entry 239 (class 1255 OID 17933)
+-- Dependencies: 5
+-- Name: earth(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION earth() RETURNS double precision
+    LANGUAGE sql IMMUTABLE
+    AS $$SELECT '6378168'::float8$$;
+
+
+--
+-- TOC entry 549 (class 1247 OID 18009)
+-- Dependencies: 550 551 552 5 205 546
+-- Name: earth; Type: DOMAIN; Schema: public; Owner: -
+--
+
+CREATE DOMAIN earth AS cube
+	CONSTRAINT not_3d CHECK ((cube_dim(VALUE) <= 3))
+	CONSTRAINT not_point CHECK (cube_is_point(VALUE))
+	CONSTRAINT on_surface CHECK ((abs(((cube_distance(VALUE, '(0)'::cube) / earth()) - (1)::double precision)) < 9.99999999999999955e-07::double precision));
+
+
+--
+-- TOC entry 169 (class 1255 OID 17856)
+-- Dependencies: 5 543
+-- Name: citext(character); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION citext(character) RETURNS citext
+    LANGUAGE internal IMMUTABLE STRICT
+    AS $$rtrim1$$;
+
+
+--
+-- TOC entry 170 (class 1255 OID 17857)
+-- Dependencies: 5 543
+-- Name: citext(boolean); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION citext(boolean) RETURNS citext
+    LANGUAGE internal IMMUTABLE STRICT
+    AS $$booltext$$;
+
+
+--
+-- TOC entry 171 (class 1255 OID 17858)
+-- Dependencies: 5 543
+-- Name: citext(inet); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION citext(inet) RETURNS citext
+    LANGUAGE internal IMMUTABLE STRICT
+    AS $$network_show$$;
+
+
+--
+-- TOC entry 178 (class 1255 OID 17879)
+-- Dependencies: 5 543 543
+-- Name: citext_cmp(citext, citext); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION citext_cmp(citext, citext) RETURNS integer
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/citext', 'citext_cmp';
+
+
+--
+-- TOC entry 172 (class 1255 OID 17867)
+-- Dependencies: 543 5 543
+-- Name: citext_eq(citext, citext); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION citext_eq(citext, citext) RETURNS boolean
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/citext', 'citext_eq';
+
+
+--
+-- TOC entry 177 (class 1255 OID 17872)
+-- Dependencies: 5 543 543
+-- Name: citext_ge(citext, citext); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION citext_ge(citext, citext) RETURNS boolean
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/citext', 'citext_ge';
+
+
+--
+-- TOC entry 176 (class 1255 OID 17871)
+-- Dependencies: 543 5 543
+-- Name: citext_gt(citext, citext); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION citext_gt(citext, citext) RETURNS boolean
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/citext', 'citext_gt';
+
+
+--
+-- TOC entry 179 (class 1255 OID 17880)
+-- Dependencies: 543 5
+-- Name: citext_hash(citext); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION citext_hash(citext) RETURNS integer
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/citext', 'citext_hash';
+
+
+--
+-- TOC entry 181 (class 1255 OID 17894)
+-- Dependencies: 543 543 5 543
+-- Name: citext_larger(citext, citext); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION citext_larger(citext, citext) RETURNS citext
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/citext', 'citext_larger';
+
+
+--
+-- TOC entry 175 (class 1255 OID 17870)
+-- Dependencies: 543 5 543
+-- Name: citext_le(citext, citext); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION citext_le(citext, citext) RETURNS boolean
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/citext', 'citext_le';
+
+
+--
+-- TOC entry 174 (class 1255 OID 17869)
+-- Dependencies: 543 5 543
+-- Name: citext_lt(citext, citext); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION citext_lt(citext, citext) RETURNS boolean
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/citext', 'citext_lt';
+
+
+--
+-- TOC entry 173 (class 1255 OID 17868)
+-- Dependencies: 543 543 5
+-- Name: citext_ne(citext, citext); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION citext_ne(citext, citext) RETURNS boolean
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/citext', 'citext_ne';
+
+
+--
+-- TOC entry 180 (class 1255 OID 17893)
+-- Dependencies: 5 543 543 543
+-- Name: citext_smaller(citext, citext); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION citext_smaller(citext, citext) RETURNS citext
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/citext', 'citext_smaller';
+
+
+--
+-- TOC entry 204 (class 1255 OID 17941)
+-- Dependencies: 546 5
+-- Name: cube(double precision[]); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION cube(double precision[]) RETURNS cube
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/cube', 'cube_a_f8';
+
+
+--
+-- TOC entry 224 (class 1255 OID 17962)
+-- Dependencies: 5 546
+-- Name: cube(double precision); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION cube(double precision) RETURNS cube
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/cube', 'cube_f8';
+
+
+--
+-- TOC entry 203 (class 1255 OID 17940)
+-- Dependencies: 546 5
+-- Name: cube(double precision[], double precision[]); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION cube(double precision[], double precision[]) RETURNS cube
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/cube', 'cube_a_f8_f8';
+
+
+--
+-- TOC entry 227 (class 1255 OID 17963)
+-- Dependencies: 546 5
+-- Name: cube(double precision, double precision); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION cube(double precision, double precision) RETURNS cube
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/cube', 'cube_f8_f8';
+
+
+--
+-- TOC entry 228 (class 1255 OID 17964)
+-- Dependencies: 546 5 546
+-- Name: cube(cube, double precision); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION cube(cube, double precision) RETURNS cube
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/cube', 'cube_c_f8';
+
+
+--
+-- TOC entry 229 (class 1255 OID 17965)
+-- Dependencies: 5 546 546
+-- Name: cube(cube, double precision, double precision); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION cube(cube, double precision, double precision) RETURNS cube
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/cube', 'cube_c_f8_f8';
+
+
+--
+-- TOC entry 212 (class 1255 OID 17950)
+-- Dependencies: 546 546 5
+-- Name: cube_cmp(cube, cube); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION cube_cmp(cube, cube) RETURNS integer
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/cube', 'cube_cmp';
+
+
+--
+-- TOC entry 2011 (class 0 OID 0)
+-- Dependencies: 212
+-- Name: FUNCTION cube_cmp(cube, cube); Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON FUNCTION cube_cmp(cube, cube) IS 'btree comparison function';
+
+
+--
+-- TOC entry 214 (class 1255 OID 17952)
+-- Dependencies: 5 546 546
+-- Name: cube_contained(cube, cube); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION cube_contained(cube, cube) RETURNS boolean
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/cube', 'cube_contained';
+
+
+--
+-- TOC entry 2012 (class 0 OID 0)
+-- Dependencies: 214
+-- Name: FUNCTION cube_contained(cube, cube); Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON FUNCTION cube_contained(cube, cube) IS 'contained in';
+
+
+--
+-- TOC entry 213 (class 1255 OID 17951)
+-- Dependencies: 5 546 546
+-- Name: cube_contains(cube, cube); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION cube_contains(cube, cube) RETURNS boolean
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/cube', 'cube_contains';
+
+
+--
+-- TOC entry 2013 (class 0 OID 0)
+-- Dependencies: 213
+-- Name: FUNCTION cube_contains(cube, cube); Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON FUNCTION cube_contains(cube, cube) IS 'contains';
+
+
+--
+-- TOC entry 231 (class 1255 OID 17967)
+-- Dependencies: 546 5 546
+-- Name: cube_enlarge(cube, double precision, integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION cube_enlarge(cube, double precision, integer) RETURNS cube
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/cube', 'cube_enlarge';
+
+
+--
+-- TOC entry 206 (class 1255 OID 17944)
+-- Dependencies: 546 5 546
+-- Name: cube_eq(cube, cube); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION cube_eq(cube, cube) RETURNS boolean
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/cube', 'cube_eq';
+
+
+--
+-- TOC entry 2014 (class 0 OID 0)
+-- Dependencies: 206
+-- Name: FUNCTION cube_eq(cube, cube); Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON FUNCTION cube_eq(cube, cube) IS 'same as';
+
+
+--
+-- TOC entry 211 (class 1255 OID 17949)
+-- Dependencies: 5 546 546
+-- Name: cube_ge(cube, cube); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION cube_ge(cube, cube) RETURNS boolean
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/cube', 'cube_ge';
+
+
+--
+-- TOC entry 2015 (class 0 OID 0)
+-- Dependencies: 211
+-- Name: FUNCTION cube_ge(cube, cube); Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON FUNCTION cube_ge(cube, cube) IS 'greater than or equal to';
+
+
+--
+-- TOC entry 209 (class 1255 OID 17947)
+-- Dependencies: 5 546 546
+-- Name: cube_gt(cube, cube); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION cube_gt(cube, cube) RETURNS boolean
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/cube', 'cube_gt';
+
+
+--
+-- TOC entry 2016 (class 0 OID 0)
+-- Dependencies: 209
+-- Name: FUNCTION cube_gt(cube, cube); Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON FUNCTION cube_gt(cube, cube) IS 'greater than';
+
+
+--
+-- TOC entry 217 (class 1255 OID 17955)
+-- Dependencies: 546 5 546 546
+-- Name: cube_inter(cube, cube); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION cube_inter(cube, cube) RETURNS cube
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/cube', 'cube_inter';
+
+
+--
+-- TOC entry 210 (class 1255 OID 17948)
+-- Dependencies: 5 546 546
+-- Name: cube_le(cube, cube); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION cube_le(cube, cube) RETURNS boolean
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/cube', 'cube_le';
+
+
+--
+-- TOC entry 2017 (class 0 OID 0)
+-- Dependencies: 210
+-- Name: FUNCTION cube_le(cube, cube); Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON FUNCTION cube_le(cube, cube) IS 'lower than or equal to';
+
+
+--
+-- TOC entry 222 (class 1255 OID 17960)
+-- Dependencies: 546 5
+-- Name: cube_ll_coord(cube, integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION cube_ll_coord(cube, integer) RETURNS double precision
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/cube', 'cube_ll_coord';
+
+
+--
+-- TOC entry 208 (class 1255 OID 17946)
+-- Dependencies: 5 546 546
+-- Name: cube_lt(cube, cube); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION cube_lt(cube, cube) RETURNS boolean
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/cube', 'cube_lt';
+
+
+--
+-- TOC entry 2018 (class 0 OID 0)
+-- Dependencies: 208
+-- Name: FUNCTION cube_lt(cube, cube); Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON FUNCTION cube_lt(cube, cube) IS 'lower than';
+
+
+--
+-- TOC entry 207 (class 1255 OID 17945)
+-- Dependencies: 5 546 546
+-- Name: cube_ne(cube, cube); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION cube_ne(cube, cube) RETURNS boolean
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/cube', 'cube_ne';
+
+
+--
+-- TOC entry 2019 (class 0 OID 0)
+-- Dependencies: 207
+-- Name: FUNCTION cube_ne(cube, cube); Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON FUNCTION cube_ne(cube, cube) IS 'different';
+
+
+--
+-- TOC entry 215 (class 1255 OID 17953)
+-- Dependencies: 5 546 546
+-- Name: cube_overlap(cube, cube); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION cube_overlap(cube, cube) RETURNS boolean
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/cube', 'cube_overlap';
+
+
+--
+-- TOC entry 2020 (class 0 OID 0)
+-- Dependencies: 215
+-- Name: FUNCTION cube_overlap(cube, cube); Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON FUNCTION cube_overlap(cube, cube) IS 'overlaps';
+
+
+--
+-- TOC entry 218 (class 1255 OID 17956)
+-- Dependencies: 546 5
+-- Name: cube_size(cube); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION cube_size(cube) RETURNS double precision
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/cube', 'cube_size';
+
+
+--
+-- TOC entry 219 (class 1255 OID 17957)
+-- Dependencies: 546 546 5
+-- Name: cube_subset(cube, integer[]); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION cube_subset(cube, integer[]) RETURNS cube
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/cube', 'cube_subset';
+
+
+--
+-- TOC entry 216 (class 1255 OID 17954)
+-- Dependencies: 546 546 546 5
+-- Name: cube_union(cube, cube); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION cube_union(cube, cube) RETURNS cube
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/cube', 'cube_union';
+
+
+--
+-- TOC entry 223 (class 1255 OID 17961)
+-- Dependencies: 546 5
+-- Name: cube_ur_coord(cube, integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION cube_ur_coord(cube, integer) RETURNS double precision
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/cube', 'cube_ur_coord';
+
+
+--
+-- TOC entry 245 (class 1255 OID 18017)
+-- Dependencies: 5 549 546
+-- Name: earth_box(earth, double precision); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION earth_box(earth, double precision) RETURNS cube
+    LANGUAGE sql IMMUTABLE STRICT
+    AS $_$SELECT cube_enlarge($1, gc_to_sec($2), 3)$_$;
+
+
+--
+-- TOC entry 244 (class 1255 OID 18016)
+-- Dependencies: 5 549 549
+-- Name: earth_distance(earth, earth); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION earth_distance(earth, earth) RETURNS double precision
+    LANGUAGE sql IMMUTABLE STRICT
+    AS $_$SELECT sec_to_gc(cube_distance($1, $2))$_$;
+
+
+--
+-- TOC entry 233 (class 1255 OID 17980)
+-- Dependencies: 5
+-- Name: g_cube_compress(internal); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION g_cube_compress(internal) RETURNS internal
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/cube', 'g_cube_compress';
+
+
+--
+-- TOC entry 232 (class 1255 OID 17979)
+-- Dependencies: 5 546
+-- Name: g_cube_consistent(internal, cube, integer, oid, internal); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION g_cube_consistent(internal, cube, integer, oid, internal) RETURNS boolean
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/cube', 'g_cube_consistent';
+
+
+--
+-- TOC entry 234 (class 1255 OID 17981)
+-- Dependencies: 5
+-- Name: g_cube_decompress(internal); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION g_cube_decompress(internal) RETURNS internal
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/cube', 'g_cube_decompress';
+
+
+--
+-- TOC entry 235 (class 1255 OID 17982)
+-- Dependencies: 5
+-- Name: g_cube_penalty(internal, internal, internal); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION g_cube_penalty(internal, internal, internal) RETURNS internal
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/cube', 'g_cube_penalty';
+
+
+--
+-- TOC entry 236 (class 1255 OID 17983)
+-- Dependencies: 5
+-- Name: g_cube_picksplit(internal, internal); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION g_cube_picksplit(internal, internal) RETURNS internal
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/cube', 'g_cube_picksplit';
+
+
+--
+-- TOC entry 238 (class 1255 OID 17985)
+-- Dependencies: 546 5 546
+-- Name: g_cube_same(cube, cube, internal); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION g_cube_same(cube, cube, internal) RETURNS internal
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/cube', 'g_cube_same';
+
+
+--
+-- TOC entry 237 (class 1255 OID 17984)
+-- Dependencies: 5 546
+-- Name: g_cube_union(internal, internal); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION g_cube_union(internal, internal) RETURNS cube
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/cube', 'g_cube_union';
+
+
+--
+-- TOC entry 225 (class 1255 OID 17935)
+-- Dependencies: 5
+-- Name: gc_to_sec(double precision); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION gc_to_sec(double precision) RETURNS double precision
+    LANGUAGE sql IMMUTABLE STRICT
+    AS $_$SELECT CASE WHEN $1 < 0 THEN 0::float8 WHEN $1/earth() > pi() THEN 2*earth() ELSE 2*earth()*sin($1/(2*earth())) END$_$;
+
+
+--
+-- TOC entry 226 (class 1255 OID 17936)
+-- Dependencies: 5
+-- Name: geo_distance(point, point); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION geo_distance(point, point) RETURNS double precision
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/earthdistance', 'geo_distance';
+
+
+--
+-- TOC entry 242 (class 1255 OID 18014)
+-- Dependencies: 549 5
+-- Name: latitude(earth); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION latitude(earth) RETURNS double precision
+    LANGUAGE sql IMMUTABLE STRICT
+    AS $_$SELECT CASE WHEN cube_ll_coord($1, 3)/earth() < -1 THEN -90::float8 WHEN cube_ll_coord($1, 3)/earth() > 1 THEN 90::float8 ELSE degrees(asin(cube_ll_coord($1, 3)/earth())) END$_$;
+
+
+--
+-- TOC entry 241 (class 1255 OID 18013)
+-- Dependencies: 5 549
+-- Name: ll_to_earth(double precision, double precision); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION ll_to_earth(double precision, double precision) RETURNS earth
+    LANGUAGE sql IMMUTABLE STRICT
+    AS $_$SELECT cube(cube(cube(earth()*cos(radians($1))*cos(radians($2))),earth()*cos(radians($1))*sin(radians($2))),earth()*sin(radians($1)))::earth$_$;
+
+
+--
+-- TOC entry 243 (class 1255 OID 18015)
+-- Dependencies: 5 549
+-- Name: longitude(earth); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION longitude(earth) RETURNS double precision
+    LANGUAGE sql IMMUTABLE STRICT
+    AS $_$SELECT degrees(atan2(cube_ll_coord($1, 2), cube_ll_coord($1, 1)))$_$;
+
+
+--
+-- TOC entry 190 (class 1255 OID 17921)
+-- Dependencies: 543 5 543
+-- Name: regexp_matches(citext, citext); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION regexp_matches(citext, citext) RETURNS text[]
+    LANGUAGE sql IMMUTABLE STRICT
+    AS $_$
+    SELECT pg_catalog.regexp_matches( $1::pg_catalog.text, $2::pg_catalog.text, 'i' );
+$_$;
+
+
+--
+-- TOC entry 191 (class 1255 OID 17922)
+-- Dependencies: 543 5 543
+-- Name: regexp_matches(citext, citext, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION regexp_matches(citext, citext, text) RETURNS text[]
+    LANGUAGE sql IMMUTABLE STRICT
+    AS $_$
+    SELECT pg_catalog.regexp_matches( $1::pg_catalog.text, $2::pg_catalog.text, CASE WHEN pg_catalog.strpos($3, 'c') = 0 THEN  $3 || 'i' ELSE $3 END );
+$_$;
+
+
+--
+-- TOC entry 192 (class 1255 OID 17923)
+-- Dependencies: 543 5 543
+-- Name: regexp_replace(citext, citext, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION regexp_replace(citext, citext, text) RETURNS text
+    LANGUAGE sql IMMUTABLE STRICT
+    AS $_$
+    SELECT pg_catalog.regexp_replace( $1::pg_catalog.text, $2::pg_catalog.text, $3, 'i');
+$_$;
+
+
+--
+-- TOC entry 193 (class 1255 OID 17924)
+-- Dependencies: 543 5 543
+-- Name: regexp_replace(citext, citext, text, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION regexp_replace(citext, citext, text, text) RETURNS text
+    LANGUAGE sql IMMUTABLE STRICT
+    AS $_$
+    SELECT pg_catalog.regexp_replace( $1::pg_catalog.text, $2::pg_catalog.text, $3, CASE WHEN pg_catalog.strpos($4, 'c') = 0 THEN  $4 || 'i' ELSE $4 END);
+$_$;
+
+
+--
+-- TOC entry 194 (class 1255 OID 17925)
+-- Dependencies: 543 5 543
+-- Name: regexp_split_to_array(citext, citext); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION regexp_split_to_array(citext, citext) RETURNS text[]
+    LANGUAGE sql IMMUTABLE STRICT
+    AS $_$
+    SELECT pg_catalog.regexp_split_to_array( $1::pg_catalog.text, $2::pg_catalog.text, 'i' );
+$_$;
+
+
+--
+-- TOC entry 195 (class 1255 OID 17926)
+-- Dependencies: 5 543 543
+-- Name: regexp_split_to_array(citext, citext, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION regexp_split_to_array(citext, citext, text) RETURNS text[]
+    LANGUAGE sql IMMUTABLE STRICT
+    AS $_$
+    SELECT pg_catalog.regexp_split_to_array( $1::pg_catalog.text, $2::pg_catalog.text, CASE WHEN pg_catalog.strpos($3, 'c') = 0 THEN  $3 || 'i' ELSE $3 END );
+$_$;
+
+
+--
+-- TOC entry 196 (class 1255 OID 17927)
+-- Dependencies: 5 543 543
+-- Name: regexp_split_to_table(citext, citext); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION regexp_split_to_table(citext, citext) RETURNS SETOF text
+    LANGUAGE sql IMMUTABLE STRICT
+    AS $_$
+    SELECT pg_catalog.regexp_split_to_table( $1::pg_catalog.text, $2::pg_catalog.text, 'i' );
+$_$;
+
+
+--
+-- TOC entry 197 (class 1255 OID 17928)
+-- Dependencies: 5 543 543
+-- Name: regexp_split_to_table(citext, citext, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION regexp_split_to_table(citext, citext, text) RETURNS SETOF text
+    LANGUAGE sql IMMUTABLE STRICT
+    AS $_$
+    SELECT pg_catalog.regexp_split_to_table( $1::pg_catalog.text, $2::pg_catalog.text, CASE WHEN pg_catalog.strpos($3, 'c') = 0 THEN  $3 || 'i' ELSE $3 END );
+$_$;
+
+
+--
+-- TOC entry 199 (class 1255 OID 17930)
+-- Dependencies: 543 543 5 543
+-- Name: replace(citext, citext, citext); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION replace(citext, citext, citext) RETURNS text
+    LANGUAGE sql IMMUTABLE STRICT
+    AS $_$
+    SELECT pg_catalog.regexp_replace( $1::pg_catalog.text, pg_catalog.regexp_replace($2::pg_catalog.text, '([^a-zA-Z_0-9])', E'\\\\\\1', 'g'), $3::pg_catalog.text, 'gi' );
+$_$;
+
+
+--
+-- TOC entry 240 (class 1255 OID 17934)
+-- Dependencies: 5
+-- Name: sec_to_gc(double precision); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION sec_to_gc(double precision) RETURNS double precision
+    LANGUAGE sql IMMUTABLE STRICT
+    AS $_$SELECT CASE WHEN $1 < 0 THEN 0::float8 WHEN $1/(2*earth()) > 1 THEN pi()*earth() ELSE 2*earth()*asin($1/(2*earth())) END$_$;
+
+
+--
+-- TOC entry 200 (class 1255 OID 17931)
+-- Dependencies: 5 543 543
+-- Name: split_part(citext, citext, integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION split_part(citext, citext, integer) RETURNS text
+    LANGUAGE sql IMMUTABLE STRICT
+    AS $_$
+    SELECT (pg_catalog.regexp_split_to_array( $1::pg_catalog.text, pg_catalog.regexp_replace($2::pg_catalog.text, '([^a-zA-Z_0-9])', E'\\\\\\1', 'g'), 'i'))[$3];
+$_$;
+
+
+--
+-- TOC entry 198 (class 1255 OID 17929)
+-- Dependencies: 543 5 543
+-- Name: strpos(citext, citext); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION strpos(citext, citext) RETURNS integer
+    LANGUAGE sql IMMUTABLE STRICT
+    AS $_$
+    SELECT pg_catalog.strpos( pg_catalog.lower( $1::pg_catalog.text ), pg_catalog.lower( $2::pg_catalog.text ) );
+$_$;
+
+
+--
+-- TOC entry 182 (class 1255 OID 17897)
+-- Dependencies: 543 5 543
+-- Name: texticlike(citext, citext); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION texticlike(citext, citext) RETURNS boolean
+    LANGUAGE internal IMMUTABLE STRICT
+    AS $$texticlike$$;
+
+
+--
+-- TOC entry 186 (class 1255 OID 17909)
+-- Dependencies: 5 543
+-- Name: texticlike(citext, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION texticlike(citext, text) RETURNS boolean
+    LANGUAGE internal IMMUTABLE STRICT
+    AS $$texticlike$$;
+
+
+--
+-- TOC entry 183 (class 1255 OID 17898)
+-- Dependencies: 543 5 543
+-- Name: texticnlike(citext, citext); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION texticnlike(citext, citext) RETURNS boolean
+    LANGUAGE internal IMMUTABLE STRICT
+    AS $$texticnlike$$;
+
+
+--
+-- TOC entry 187 (class 1255 OID 17910)
+-- Dependencies: 543 5
+-- Name: texticnlike(citext, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION texticnlike(citext, text) RETURNS boolean
+    LANGUAGE internal IMMUTABLE STRICT
+    AS $$texticnlike$$;
+
+
+--
+-- TOC entry 184 (class 1255 OID 17899)
+-- Dependencies: 543 5 543
+-- Name: texticregexeq(citext, citext); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION texticregexeq(citext, citext) RETURNS boolean
+    LANGUAGE internal IMMUTABLE STRICT
+    AS $$texticregexeq$$;
+
+
+--
+-- TOC entry 188 (class 1255 OID 17911)
+-- Dependencies: 543 5
+-- Name: texticregexeq(citext, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION texticregexeq(citext, text) RETURNS boolean
+    LANGUAGE internal IMMUTABLE STRICT
+    AS $$texticregexeq$$;
+
+
+--
+-- TOC entry 185 (class 1255 OID 17900)
+-- Dependencies: 543 5 543
+-- Name: texticregexne(citext, citext); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION texticregexne(citext, citext) RETURNS boolean
+    LANGUAGE internal IMMUTABLE STRICT
+    AS $$texticregexne$$;
+
+
+--
+-- TOC entry 189 (class 1255 OID 17912)
+-- Dependencies: 5 543
+-- Name: texticregexne(citext, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION texticregexne(citext, text) RETURNS boolean
+    LANGUAGE internal IMMUTABLE STRICT
+    AS $$texticregexne$$;
+
+
+--
+-- TOC entry 201 (class 1255 OID 17932)
+-- Dependencies: 543 5 543
+-- Name: translate(citext, citext, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION translate(citext, citext, text) RETURNS text
+    LANGUAGE sql IMMUTABLE STRICT
+    AS $_$
+    SELECT pg_catalog.translate( pg_catalog.translate( $1::pg_catalog.text, pg_catalog.lower($2::pg_catalog.text), $3), pg_catalog.upper($2::pg_catalog.text), $3);
+$_$;
+
+
+--
+-- TOC entry 251 (class 1255 OID 1310261)
+-- Dependencies: 5
+-- Name: uuid_generate_v1(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION uuid_generate_v1() RETURNS uuid
+    LANGUAGE c STRICT
+    AS '$libdir/uuid-ossp', 'uuid_generate_v1';
+
+
+--
+-- TOC entry 252 (class 1255 OID 1310262)
+-- Dependencies: 5
+-- Name: uuid_generate_v1mc(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION uuid_generate_v1mc() RETURNS uuid
+    LANGUAGE c STRICT
+    AS '$libdir/uuid-ossp', 'uuid_generate_v1mc';
+
+
+--
+-- TOC entry 253 (class 1255 OID 1310263)
+-- Dependencies: 5
+-- Name: uuid_generate_v3(uuid, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION uuid_generate_v3(namespace uuid, name text) RETURNS uuid
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/uuid-ossp', 'uuid_generate_v3';
+
+
+--
+-- TOC entry 254 (class 1255 OID 1310264)
+-- Dependencies: 5
+-- Name: uuid_generate_v4(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION uuid_generate_v4() RETURNS uuid
+    LANGUAGE c STRICT
+    AS '$libdir/uuid-ossp', 'uuid_generate_v4';
+
+
+--
+-- TOC entry 255 (class 1255 OID 1310265)
+-- Dependencies: 5
+-- Name: uuid_generate_v5(uuid, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION uuid_generate_v5(namespace uuid, name text) RETURNS uuid
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/uuid-ossp', 'uuid_generate_v5';
+
+
+--
+-- TOC entry 246 (class 1255 OID 1310256)
+-- Dependencies: 5
+-- Name: uuid_nil(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION uuid_nil() RETURNS uuid
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/uuid-ossp', 'uuid_nil';
+
+
+--
+-- TOC entry 247 (class 1255 OID 1310257)
+-- Dependencies: 5
+-- Name: uuid_ns_dns(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION uuid_ns_dns() RETURNS uuid
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/uuid-ossp', 'uuid_ns_dns';
+
+
+--
+-- TOC entry 249 (class 1255 OID 1310259)
+-- Dependencies: 5
+-- Name: uuid_ns_oid(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION uuid_ns_oid() RETURNS uuid
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/uuid-ossp', 'uuid_ns_oid';
+
+
+--
+-- TOC entry 248 (class 1255 OID 1310258)
+-- Dependencies: 5
+-- Name: uuid_ns_url(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION uuid_ns_url() RETURNS uuid
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/uuid-ossp', 'uuid_ns_url';
+
+
+--
+-- TOC entry 250 (class 1255 OID 1310260)
+-- Dependencies: 5
+-- Name: uuid_ns_x500(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION uuid_ns_x500() RETURNS uuid
+    LANGUAGE c IMMUTABLE STRICT
+    AS '$libdir/uuid-ossp', 'uuid_ns_x500';
+
+
+--
+-- TOC entry 1293 (class 2617 OID 17875)
+-- Dependencies: 5 176 543 543
+-- Name: >; Type: OPERATOR; Schema: public; Owner: -
+--
+
+CREATE OPERATOR > (
+    PROCEDURE = citext_gt,
+    LEFTARG = citext,
+    RIGHTARG = citext,
+    COMMUTATOR = <,
+    NEGATOR = <=,
+    RESTRICT = scalargtsel,
+    JOIN = scalargtjoinsel
+);
+
+
+--
+-- TOC entry 583 (class 1255 OID 17896)
+-- Dependencies: 181 5 543 543 1293
+-- Name: max(citext); Type: AGGREGATE; Schema: public; Owner: -
+--
+
+CREATE AGGREGATE max(citext) (
+    SFUNC = citext_larger,
+    STYPE = citext,
+    SORTOP = >
+);
+
+
+--
+-- TOC entry 1292 (class 2617 OID 17877)
+-- Dependencies: 174 5 543 543
+-- Name: <; Type: OPERATOR; Schema: public; Owner: -
+--
+
+CREATE OPERATOR < (
+    PROCEDURE = citext_lt,
+    LEFTARG = citext,
+    RIGHTARG = citext,
+    COMMUTATOR = >,
+    NEGATOR = >=,
+    RESTRICT = scalarltsel,
+    JOIN = scalarltjoinsel
+);
+
+
+--
+-- TOC entry 582 (class 1255 OID 17895)
+-- Dependencies: 5 1292 543 180 543
+-- Name: min(citext); Type: AGGREGATE; Schema: public; Owner: -
+--
+
+CREATE AGGREGATE min(citext) (
+    SFUNC = citext_smaller,
+    STYPE = citext,
+    SORTOP = <
+);
+
+
+--
+-- TOC entry 1297 (class 2617 OID 17901)
+-- Dependencies: 543 5 543 185
+-- Name: !~; Type: OPERATOR; Schema: public; Owner: -
+--
+
+CREATE OPERATOR !~ (
+    PROCEDURE = texticregexne,
+    LEFTARG = citext,
+    RIGHTARG = citext,
+    NEGATOR = ~,
+    RESTRICT = icregexnesel,
+    JOIN = icregexnejoinsel
+);
+
+
+--
+-- TOC entry 1306 (class 2617 OID 17913)
+-- Dependencies: 543 189 5
+-- Name: !~; Type: OPERATOR; Schema: public; Owner: -
+--
+
+CREATE OPERATOR !~ (
+    PROCEDURE = texticregexne,
+    LEFTARG = citext,
+    RIGHTARG = text,
+    NEGATOR = ~,
+    RESTRICT = icregexnesel,
+    JOIN = icregexnejoinsel
+);
+
+
+--
+-- TOC entry 1296 (class 2617 OID 17903)
+-- Dependencies: 185 5 543 543
+-- Name: !~*; Type: OPERATOR; Schema: public; Owner: -
+--
+
+CREATE OPERATOR !~* (
+    PROCEDURE = texticregexne,
+    LEFTARG = citext,
+    RIGHTARG = citext,
+    NEGATOR = ~*,
+    RESTRICT = icregexnesel,
+    JOIN = icregexnejoinsel
+);
+
+
+--
+-- TOC entry 1307 (class 2617 OID 17915)
+-- Dependencies: 189 5 543
+-- Name: !~*; Type: OPERATOR; Schema: public; Owner: -
+--
+
+CREATE OPERATOR !~* (
+    PROCEDURE = texticregexne,
+    LEFTARG = citext,
+    RIGHTARG = text,
+    NEGATOR = ~*,
+    RESTRICT = icregexnesel,
+    JOIN = icregexnejoinsel
+);
+
+
+--
+-- TOC entry 1302 (class 2617 OID 17905)
+-- Dependencies: 543 183 5 543
+-- Name: !~~; Type: OPERATOR; Schema: public; Owner: -
+--
+
+CREATE OPERATOR !~~ (
+    PROCEDURE = texticnlike,
+    LEFTARG = citext,
+    RIGHTARG = citext,
+    NEGATOR = ~~,
+    RESTRICT = icnlikesel,
+    JOIN = icnlikejoinsel
+);
+
+
+--
+-- TOC entry 1310 (class 2617 OID 17917)
+-- Dependencies: 543 187 5
+-- Name: !~~; Type: OPERATOR; Schema: public; Owner: -
+--
+
+CREATE OPERATOR !~~ (
+    PROCEDURE = texticnlike,
+    LEFTARG = citext,
+    RIGHTARG = text,
+    NEGATOR = ~~,
+    RESTRICT = icnlikesel,
+    JOIN = icnlikejoinsel
+);
+
+
+--
+-- TOC entry 1303 (class 2617 OID 17907)
+-- Dependencies: 543 183 5 543
+-- Name: !~~*; Type: OPERATOR; Schema: public; Owner: -
+--
+
+CREATE OPERATOR !~~* (
+    PROCEDURE = texticnlike,
+    LEFTARG = citext,
+    RIGHTARG = citext,
+    NEGATOR = ~~*,
+    RESTRICT = icnlikesel,
+    JOIN = icnlikejoinsel
+);
+
+
+--
+-- TOC entry 1311 (class 2617 OID 17919)
+-- Dependencies: 5 543 187
+-- Name: !~~*; Type: OPERATOR; Schema: public; Owner: -
+--
+
+CREATE OPERATOR !~~* (
+    PROCEDURE = texticnlike,
+    LEFTARG = citext,
+    RIGHTARG = text,
+    NEGATOR = ~~*,
+    RESTRICT = icnlikesel,
+    JOIN = icnlikejoinsel
+);
+
+
+--
+-- TOC entry 1317 (class 2617 OID 17972)
+-- Dependencies: 5 215 546 546
+-- Name: &&; Type: OPERATOR; Schema: public; Owner: -
+--
+
+CREATE OPERATOR && (
+    PROCEDURE = cube_overlap,
+    LEFTARG = cube,
+    RIGHTARG = cube,
+    COMMUTATOR = &&,
+    RESTRICT = areasel,
+    JOIN = areajoinsel
+);
+
+
+--
+-- TOC entry 1313 (class 2617 OID 17970)
+-- Dependencies: 546 5 546 208
+-- Name: <; Type: OPERATOR; Schema: public; Owner: -
+--
+
+CREATE OPERATOR < (
+    PROCEDURE = cube_lt,
+    LEFTARG = cube,
+    RIGHTARG = cube,
+    COMMUTATOR = >,
+    NEGATOR = >=,
+    RESTRICT = scalarltsel,
+    JOIN = scalarltjoinsel
+);
+
+
+--
+-- TOC entry 1294 (class 2617 OID 17878)
+-- Dependencies: 543 175 543 5
+-- Name: <=; Type: OPERATOR; Schema: public; Owner: -
+--
+
+CREATE OPERATOR <= (
+    PROCEDURE = citext_le,
+    LEFTARG = citext,
+    RIGHTARG = citext,
+    COMMUTATOR = >=,
+    NEGATOR = >,
+    RESTRICT = scalarltsel,
+    JOIN = scalarltjoinsel
+);
+
+
+--
+-- TOC entry 1315 (class 2617 OID 17971)
+-- Dependencies: 5 210 546 546
+-- Name: <=; Type: OPERATOR; Schema: public; Owner: -
+--
+
+CREATE OPERATOR <= (
+    PROCEDURE = cube_le,
+    LEFTARG = cube,
+    RIGHTARG = cube,
+    COMMUTATOR = >=,
+    NEGATOR = >,
+    RESTRICT = scalarltsel,
+    JOIN = scalarltjoinsel
+);
+
+
+--
+-- TOC entry 1291 (class 2617 OID 17873)
+-- Dependencies: 5 173 543 543
+-- Name: <>; Type: OPERATOR; Schema: public; Owner: -
+--
+
+CREATE OPERATOR <> (
+    PROCEDURE = citext_ne,
+    LEFTARG = citext,
+    RIGHTARG = citext,
+    COMMUTATOR = <>,
+    NEGATOR = =,
+    RESTRICT = neqsel,
+    JOIN = neqjoinsel
+);
+
+
+--
+-- TOC entry 1319 (class 2617 OID 17973)
+-- Dependencies: 546 207 546 5
+-- Name: <>; Type: OPERATOR; Schema: public; Owner: -
+--
+
+CREATE OPERATOR <> (
+    PROCEDURE = cube_ne,
+    LEFTARG = cube,
+    RIGHTARG = cube,
+    COMMUTATOR = <>,
+    NEGATOR = =,
+    RESTRICT = neqsel,
+    JOIN = neqjoinsel
+);
+
+
+--
+-- TOC entry 1321 (class 2617 OID 17975)
+-- Dependencies: 546 5 546 214
+-- Name: <@; Type: OPERATOR; Schema: public; Owner: -
+--
+
+CREATE OPERATOR <@ (
+    PROCEDURE = cube_contained,
+    LEFTARG = cube,
+    RIGHTARG = cube,
+    COMMUTATOR = @>,
+    RESTRICT = contsel,
+    JOIN = contjoinsel
+);
+
+
+--
+-- TOC entry 1312 (class 2617 OID 17937)
+-- Dependencies: 226 5
+-- Name: <@>; Type: OPERATOR; Schema: public; Owner: -
+--
+
+CREATE OPERATOR <@> (
+    PROCEDURE = geo_distance,
+    LEFTARG = point,
+    RIGHTARG = point,
+    COMMUTATOR = <@>
+);
+
+
+--
+-- TOC entry 1289 (class 2617 OID 17874)
+-- Dependencies: 172 543 543 5
+-- Name: =; Type: OPERATOR; Schema: public; Owner: -
+--
+
+CREATE OPERATOR = (
+    PROCEDURE = citext_eq,
+    LEFTARG = citext,
+    RIGHTARG = citext,
+    COMMUTATOR = =,
+    NEGATOR = <>,
+    MERGES,
+    HASHES,
+    RESTRICT = eqsel,
+    JOIN = eqjoinsel
+);
+
+
+--
+-- TOC entry 1318 (class 2617 OID 17974)
+-- Dependencies: 546 546 206 5
+-- Name: =; Type: OPERATOR; Schema: public; Owner: -
+--
+
+CREATE OPERATOR = (
+    PROCEDURE = cube_eq,
+    LEFTARG = cube,
+    RIGHTARG = cube,
+    COMMUTATOR = =,
+    NEGATOR = <>,
+    MERGES,
+    RESTRICT = eqsel,
+    JOIN = eqjoinsel
+);
+
+
+--
+-- TOC entry 1314 (class 2617 OID 17968)
+-- Dependencies: 5 546 546 209
+-- Name: >; Type: OPERATOR; Schema: public; Owner: -
+--
+
+CREATE OPERATOR > (
+    PROCEDURE = cube_gt,
+    LEFTARG = cube,
+    RIGHTARG = cube,
+    COMMUTATOR = <,
+    NEGATOR = <=,
+    RESTRICT = scalargtsel,
+    JOIN = scalargtjoinsel
+);
+
+
+--
+-- TOC entry 1290 (class 2617 OID 17876)
+-- Dependencies: 5 177 543 543
+-- Name: >=; Type: OPERATOR; Schema: public; Owner: -
+--
+
+CREATE OPERATOR >= (
+    PROCEDURE = citext_ge,
+    LEFTARG = citext,
+    RIGHTARG = citext,
+    COMMUTATOR = <=,
+    NEGATOR = <,
+    RESTRICT = scalargtsel,
+    JOIN = scalargtjoinsel
+);
+
+
+--
+-- TOC entry 1316 (class 2617 OID 17969)
+-- Dependencies: 211 546 5 546
+-- Name: >=; Type: OPERATOR; Schema: public; Owner: -
+--
+
+CREATE OPERATOR >= (
+    PROCEDURE = cube_ge,
+    LEFTARG = cube,
+    RIGHTARG = cube,
+    COMMUTATOR = <=,
+    NEGATOR = <,
+    RESTRICT = scalargtsel,
+    JOIN = scalargtjoinsel
+);
+
+
+--
+-- TOC entry 1322 (class 2617 OID 17978)
+-- Dependencies: 5 213 546 546
+-- Name: @; Type: OPERATOR; Schema: public; Owner: -
+--
+
+CREATE OPERATOR @ (
+    PROCEDURE = cube_contains,
+    LEFTARG = cube,
+    RIGHTARG = cube,
+    COMMUTATOR = ~,
+    RESTRICT = contsel,
+    JOIN = contjoinsel
+);
+
+
+--
+-- TOC entry 1320 (class 2617 OID 17976)
+-- Dependencies: 546 5 213 546
+-- Name: @>; Type: OPERATOR; Schema: public; Owner: -
+--
+
+CREATE OPERATOR @> (
+    PROCEDURE = cube_contains,
+    LEFTARG = cube,
+    RIGHTARG = cube,
+    COMMUTATOR = <@,
+    RESTRICT = contsel,
+    JOIN = contjoinsel
+);
+
+
+--
+-- TOC entry 1295 (class 2617 OID 17902)
+-- Dependencies: 5 543 543 184
+-- Name: ~; Type: OPERATOR; Schema: public; Owner: -
+--
+
+CREATE OPERATOR ~ (
+    PROCEDURE = texticregexeq,
+    LEFTARG = citext,
+    RIGHTARG = citext,
+    NEGATOR = !~,
+    RESTRICT = icregexeqsel,
+    JOIN = icregexeqjoinsel
+);
+
+
+--
+-- TOC entry 1304 (class 2617 OID 17914)
+-- Dependencies: 5 543 188
+-- Name: ~; Type: OPERATOR; Schema: public; Owner: -
+--
+
+CREATE OPERATOR ~ (
+    PROCEDURE = texticregexeq,
+    LEFTARG = citext,
+    RIGHTARG = text,
+    NEGATOR = !~,
+    RESTRICT = icregexeqsel,
+    JOIN = icregexeqjoinsel
+);
+
+
+--
+-- TOC entry 1301 (class 2617 OID 17977)
+-- Dependencies: 546 5 546 214
+-- Name: ~; Type: OPERATOR; Schema: public; Owner: -
+--
+
+CREATE OPERATOR ~ (
+    PROCEDURE = cube_contained,
+    LEFTARG = cube,
+    RIGHTARG = cube,
+    COMMUTATOR = @,
+    RESTRICT = contsel,
+    JOIN = contjoinsel
+);
+
+
+--
+-- TOC entry 1298 (class 2617 OID 17904)
+-- Dependencies: 184 543 543 5
+-- Name: ~*; Type: OPERATOR; Schema: public; Owner: -
+--
+
+CREATE OPERATOR ~* (
+    PROCEDURE = texticregexeq,
+    LEFTARG = citext,
+    RIGHTARG = citext,
+    NEGATOR = !~*,
+    RESTRICT = icregexeqsel,
+    JOIN = icregexeqjoinsel
+);
+
+
+--
+-- TOC entry 1305 (class 2617 OID 17916)
+-- Dependencies: 543 5 188
+-- Name: ~*; Type: OPERATOR; Schema: public; Owner: -
+--
+
+CREATE OPERATOR ~* (
+    PROCEDURE = texticregexeq,
+    LEFTARG = citext,
+    RIGHTARG = text,
+    NEGATOR = !~*,
+    RESTRICT = icregexeqsel,
+    JOIN = icregexeqjoinsel
+);
+
+
+--
+-- TOC entry 1299 (class 2617 OID 17906)
+-- Dependencies: 543 182 543 5
+-- Name: ~~; Type: OPERATOR; Schema: public; Owner: -
+--
+
+CREATE OPERATOR ~~ (
+    PROCEDURE = texticlike,
+    LEFTARG = citext,
+    RIGHTARG = citext,
+    NEGATOR = !~~,
+    RESTRICT = iclikesel,
+    JOIN = iclikejoinsel
+);
+
+
+--
+-- TOC entry 1308 (class 2617 OID 17918)
+-- Dependencies: 5 543 186
+-- Name: ~~; Type: OPERATOR; Schema: public; Owner: -
+--
+
+CREATE OPERATOR ~~ (
+    PROCEDURE = texticlike,
+    LEFTARG = citext,
+    RIGHTARG = text,
+    NEGATOR = !~~,
+    RESTRICT = iclikesel,
+    JOIN = iclikejoinsel
+);
+
+
+--
+-- TOC entry 1300 (class 2617 OID 17908)
+-- Dependencies: 543 543 5 182
+-- Name: ~~*; Type: OPERATOR; Schema: public; Owner: -
+--
+
+CREATE OPERATOR ~~* (
+    PROCEDURE = texticlike,
+    LEFTARG = citext,
+    RIGHTARG = citext,
+    NEGATOR = !~~*,
+    RESTRICT = iclikesel,
+    JOIN = iclikejoinsel
+);
+
+
+--
+-- TOC entry 1309 (class 2617 OID 17920)
+-- Dependencies: 186 5 543
+-- Name: ~~*; Type: OPERATOR; Schema: public; Owner: -
+--
+
+CREATE OPERATOR ~~* (
+    PROCEDURE = texticlike,
+    LEFTARG = citext,
+    RIGHTARG = text,
+    NEGATOR = !~~*,
+    RESTRICT = iclikesel,
+    JOIN = iclikejoinsel
+);
+
+
+--
+-- TOC entry 1435 (class 2616 OID 17882)
+-- Dependencies: 5 1546 543
+-- Name: citext_ops; Type: OPERATOR CLASS; Schema: public; Owner: -
+--
+
+CREATE OPERATOR CLASS citext_ops
+    DEFAULT FOR TYPE citext USING btree AS
+    OPERATOR 1 <(citext,citext) ,
+    OPERATOR 2 <=(citext,citext) ,
+    OPERATOR 3 =(citext,citext) ,
+    OPERATOR 4 >=(citext,citext) ,
+    OPERATOR 5 >(citext,citext) ,
+    FUNCTION 1 citext_cmp(citext,citext);
+
+
+--
+-- TOC entry 1436 (class 2616 OID 17890)
+-- Dependencies: 543 5 1547
+-- Name: citext_ops; Type: OPERATOR CLASS; Schema: public; Owner: -
+--
+
+CREATE OPERATOR CLASS citext_ops
+    DEFAULT FOR TYPE citext USING hash AS
+    OPERATOR 1 =(citext,citext) ,
+    FUNCTION 1 citext_hash(citext);
+
+
+--
+-- TOC entry 1437 (class 2616 OID 17987)
+-- Dependencies: 5 1548 546
+-- Name: cube_ops; Type: OPERATOR CLASS; Schema: public; Owner: -
+--
+
+CREATE OPERATOR CLASS cube_ops
+    DEFAULT FOR TYPE cube USING btree AS
+    OPERATOR 1 <(cube,cube) ,
+    OPERATOR 2 <=(cube,cube) ,
+    OPERATOR 3 =(cube,cube) ,
+    OPERATOR 4 >=(cube,cube) ,
+    OPERATOR 5 >(cube,cube) ,
+    FUNCTION 1 cube_cmp(cube,cube);
+
+
+--
+-- TOC entry 1438 (class 2616 OID 17995)
+-- Dependencies: 1549 5 546
+-- Name: gist_cube_ops; Type: OPERATOR CLASS; Schema: public; Owner: -
+--
+
+CREATE OPERATOR CLASS gist_cube_ops
+    DEFAULT FOR TYPE cube USING gist AS
+    OPERATOR 3 &&(cube,cube) ,
+    OPERATOR 6 =(cube,cube) ,
+    OPERATOR 7 @>(cube,cube) ,
+    OPERATOR 8 <@(cube,cube) ,
+    OPERATOR 13 @(cube,cube) ,
+    OPERATOR 14 ~(cube,cube) ,
+    FUNCTION 1 g_cube_consistent(internal,cube,integer,oid,internal) ,
+    FUNCTION 2 g_cube_union(internal,internal) ,
+    FUNCTION 3 g_cube_compress(internal) ,
+    FUNCTION 4 g_cube_decompress(internal) ,
+    FUNCTION 5 g_cube_penalty(internal,internal,internal) ,
+    FUNCTION 6 g_cube_picksplit(internal,internal) ,
+    FUNCTION 7 g_cube_same(cube,cube,internal);
+
+
+SET search_path = pg_catalog;
+
+--
+-- TOC entry 1777 (class 2605 OID 17865)
+-- Dependencies: 170 543 170
+-- Name: CAST (boolean AS public.citext); Type: CAST; Schema: pg_catalog; Owner: -
+--
+
+CREATE CAST (boolean AS public.citext) WITH FUNCTION public.citext(boolean) AS ASSIGNMENT;
+
+
+--
+-- TOC entry 1903 (class 2605 OID 17864)
+-- Dependencies: 169 169 543
+-- Name: CAST (character AS public.citext); Type: CAST; Schema: pg_catalog; Owner: -
+--
+
+CREATE CAST (character AS public.citext) WITH FUNCTION public.citext(character) AS ASSIGNMENT;
+
+
+--
+-- TOC entry 1970 (class 2605 OID 17861)
+-- Dependencies: 543
+-- Name: CAST (public.citext AS character); Type: CAST; Schema: pg_catalog; Owner: -
+--
+
+CREATE CAST (public.citext AS character) WITHOUT FUNCTION AS ASSIGNMENT;
+
+
+--
+-- TOC entry 1969 (class 2605 OID 17859)
+-- Dependencies: 543
+-- Name: CAST (public.citext AS text); Type: CAST; Schema: pg_catalog; Owner: -
+--
+
+CREATE CAST (public.citext AS text) WITHOUT FUNCTION AS IMPLICIT;
+
+
+--
+-- TOC entry 1971 (class 2605 OID 17860)
+-- Dependencies: 543
+-- Name: CAST (public.citext AS character varying); Type: CAST; Schema: pg_catalog; Owner: -
+--
+
+CREATE CAST (public.citext AS character varying) WITHOUT FUNCTION AS IMPLICIT;
+
+
+--
+-- TOC entry 1896 (class 2605 OID 17866)
+-- Dependencies: 171 171 543
+-- Name: CAST (inet AS public.citext); Type: CAST; Schema: pg_catalog; Owner: -
+--
+
+CREATE CAST (inet AS public.citext) WITH FUNCTION public.citext(inet) AS ASSIGNMENT;
+
+
+--
+-- TOC entry 1843 (class 2605 OID 17862)
+-- Dependencies: 543
+-- Name: CAST (text AS public.citext); Type: CAST; Schema: pg_catalog; Owner: -
+--
+
+CREATE CAST (text AS public.citext) WITHOUT FUNCTION AS ASSIGNMENT;
+
+
+--
+-- TOC entry 1911 (class 2605 OID 17863)
+-- Dependencies: 543
+-- Name: CAST (character varying AS public.citext); Type: CAST; Schema: pg_catalog; Owner: -
+--
+
+CREATE CAST (character varying AS public.citext) WITHOUT FUNCTION AS ASSIGNMENT;
+
+
+SET search_path = public, pg_catalog;
+
+SET default_tablespace = '';
+
+SET default_with_oids = false;
+
+--
+-- TOC entry 150 (class 1259 OID 1310356)
+-- Dependencies: 1978 5
+-- Name: competition; Type: TABLE; Schema: public; Owner: -; Tablespace: 
+--
+
+CREATE TABLE competition (
+    id uuid DEFAULT uuid_generate_v4() NOT NULL,
+    name character varying NOT NULL,
+    description text,
+    suite_id uuid
+);
+
+
+--
+-- TOC entry 2021 (class 0 OID 0)
+-- Dependencies: 150
+-- Name: TABLE competition; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE competition IS 'Competition for widgets.  For example, "Mail Transfer Agents".';
+
+
+--
+-- TOC entry 153 (class 1259 OID 1310434)
+-- Dependencies: 1983 5
+-- Name: competition_suite; Type: TABLE; Schema: public; Owner: -; Tablespace: 
+--
+
+CREATE TABLE competition_suite (
+    id uuid DEFAULT uuid_generate_v4() NOT NULL,
+    name character varying NOT NULL,
+    description text
+);
+
+
+--
+-- TOC entry 151 (class 1259 OID 1310392)
+-- Dependencies: 1979 5
+-- Name: competition_widget; Type: TABLE; Schema: public; Owner: -; Tablespace: 
+--
+
+CREATE TABLE competition_widget (
+    id uuid DEFAULT uuid_generate_v4() NOT NULL,
+    competition_id uuid NOT NULL,
+    widget_id uuid NOT NULL
+);
+
+
+--
+-- TOC entry 152 (class 1259 OID 1310416)
+-- Dependencies: 1980 1981 1982 5
+-- Name: competition_widget_vote; Type: TABLE; Schema: public; Owner: -; Tablespace: 
+--
+
+CREATE TABLE competition_widget_vote (
+    competition_widget_id uuid NOT NULL,
+    voter_id uuid NOT NULL,
+    value integer DEFAULT 1 NOT NULL,
+    casted timestamp without time zone DEFAULT now() NOT NULL,
+    cancelled timestamp without time zone,
+    CONSTRAINT competition_widget_vote_value_check CHECK (((value = 1) OR (value = (-1))))
+);
+
+
+--
+-- TOC entry 142 (class 1259 OID 1310269)
+-- Dependencies: 1972 5
+-- Name: person; Type: TABLE; Schema: public; Owner: -; Tablespace: 
+--
+
+CREATE TABLE person (
+    id uuid DEFAULT uuid_generate_v4() NOT NULL,
+    "nameFull" character varying NOT NULL
+);
+
+
+--
+-- TOC entry 143 (class 1259 OID 1310278)
+-- Dependencies: 1973 1974 5
+-- Name: widget; Type: TABLE; Schema: public; Owner: -; Tablespace: 
+--
+
+CREATE TABLE widget (
+    id uuid DEFAULT uuid_generate_v4() NOT NULL,
+    name character varying NOT NULL,
+    submitted_at timestamp without time zone DEFAULT now() NOT NULL,
+    submitted_by uuid NOT NULL
+);
+
+
+--
+-- TOC entry 144 (class 1259 OID 1310307)
+-- Dependencies: 1975 1976 1977 5
+-- Name: widget_vote; Type: TABLE; Schema: public; Owner: -; Tablespace: 
+--
+
+CREATE TABLE widget_vote (
+    widget_id uuid NOT NULL,
+    voter_id uuid NOT NULL,
+    value integer DEFAULT 1 NOT NULL,
+    casted timestamp without time zone DEFAULT now() NOT NULL,
+    cancelled timestamp without time zone,
+    CONSTRAINT widget_vote_value_check CHECK (((value = 1) OR (value = (-1))))
+);
+
+
+--
+-- TOC entry 148 (class 1259 OID 1310348)
+-- Dependencies: 1771 5
+-- Name: widget_vote_attention_value; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW widget_vote_attention_value AS
+    SELECT votetimedelta.widget, votetimedelta.voter, votetimedelta.value, votetimedelta.casted, votetimedelta.timedelta, ((1)::double precision / votetimedelta.timedelta) AS timevalue FROM (SELECT widget_vote.widget_id AS widget, widget_vote.voter_id AS voter, widget_vote.value, widget_vote.casted, date_part('epoch'::text, (now() - (widget_vote.casted)::timestamp with time zone)) AS timedelta FROM widget_vote) votetimedelta ORDER BY ((1)::double precision / votetimedelta.timedelta) DESC;
+
+
+--
+-- TOC entry 149 (class 1259 OID 1310352)
+-- Dependencies: 1772 5
+-- Name: widget_attention_trend; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW widget_attention_trend AS
+    SELECT widget.id, widget.name, widget.submitted_at, COALESCE(votes.attention, ((0)::bigint)::double precision) AS attention FROM (widget LEFT JOIN (SELECT widget_vote_attention_value.widget, sum(widget_vote_attention_value.timevalue) AS attention FROM widget_vote_attention_value GROUP BY widget_vote_attention_value.widget) votes ON ((votes.widget = widget.id))) ORDER BY COALESCE(votes.attention, ((0)::bigint)::double precision) DESC;
+
+
+--
+-- TOC entry 145 (class 1259 OID 1310336)
+-- Dependencies: 1768 5
+-- Name: widget_reputation; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW widget_reputation AS
+    SELECT widget.id, widget.name, widget.submitted_at, COALESCE(votes.rep, (0)::bigint) AS reputation FROM (widget LEFT JOIN (SELECT widget_vote.widget_id AS widget, sum(widget_vote.value) AS rep FROM widget_vote GROUP BY widget_vote.widget_id) votes ON ((votes.widget = widget.id))) ORDER BY COALESCE(votes.rep, (0)::bigint) DESC;
+
+
+--
+-- TOC entry 146 (class 1259 OID 1310340)
+-- Dependencies: 1769 5
+-- Name: widget_vote_trend_value; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW widget_vote_trend_value AS
+    SELECT votetimedelta.widget, votetimedelta.voter, votetimedelta.value, votetimedelta.casted, votetimedelta.timedelta, ((votetimedelta.value)::double precision / votetimedelta.timedelta) AS timevalue FROM (SELECT widget_vote.widget_id AS widget, widget_vote.voter_id AS voter, widget_vote.value, widget_vote.casted, date_part('epoch'::text, (now() - (widget_vote.casted)::timestamp with time zone)) AS timedelta FROM widget_vote) votetimedelta ORDER BY ((votetimedelta.value)::double precision / votetimedelta.timedelta) DESC;
+
+
+--
+-- TOC entry 147 (class 1259 OID 1310344)
+-- Dependencies: 1770 5
+-- Name: widget_reputation_trend; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW widget_reputation_trend AS
+    SELECT widget.id, widget.name, widget.submitted_at, COALESCE(votes.rep, ((0)::bigint)::double precision) AS reputation FROM (widget LEFT JOIN (SELECT widget_vote_trend_value.widget, sum(widget_vote_trend_value.timevalue) AS rep FROM widget_vote_trend_value GROUP BY widget_vote_trend_value.widget) votes ON ((votes.widget = widget.id))) ORDER BY COALESCE(votes.rep, ((0)::bigint)::double precision) DESC;
+
+
+--
+-- TOC entry 1999 (class 2606 OID 1310442)
+-- Dependencies: 153 153
+-- Name: competition_suite_pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
+--
+
+ALTER TABLE ONLY competition_suite
+    ADD CONSTRAINT competition_suite_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 1993 (class 2606 OID 1310399)
+-- Dependencies: 151 151 151
+-- Name: competition_widget_competition_id_widget_id_key; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
+--
+
+ALTER TABLE ONLY competition_widget
+    ADD CONSTRAINT competition_widget_competition_id_widget_id_key UNIQUE (competition_id, widget_id);
+
+
+--
+-- TOC entry 1995 (class 2606 OID 1310397)
+-- Dependencies: 151 151
+-- Name: competition_widget_pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
+--
+
+ALTER TABLE ONLY competition_widget
+    ADD CONSTRAINT competition_widget_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 1997 (class 2606 OID 1310423)
+-- Dependencies: 152 152 152
+-- Name: competition_widget_vote_pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
+--
+
+ALTER TABLE ONLY competition_widget_vote
+    ADD CONSTRAINT competition_widget_vote_pkey PRIMARY KEY (competition_widget_id, voter_id);
+
+
+--
+-- TOC entry 1985 (class 2606 OID 1310277)
+-- Dependencies: 142 142
+-- Name: person_pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
+--
+
+ALTER TABLE ONLY person
+    ADD CONSTRAINT person_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 1991 (class 2606 OID 1310367)
+-- Dependencies: 150 150
+-- Name: widget_competition_pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
+--
+
+ALTER TABLE ONLY competition
+    ADD CONSTRAINT widget_competition_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 1987 (class 2606 OID 1310287)
+-- Dependencies: 143 143
+-- Name: widget_pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
+--
+
+ALTER TABLE ONLY widget
+    ADD CONSTRAINT widget_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 1989 (class 2606 OID 1310313)
+-- Dependencies: 144 144 144
+-- Name: widget_vote_pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
+--
+
+ALTER TABLE ONLY widget_vote
+    ADD CONSTRAINT widget_vote_pkey PRIMARY KEY (widget_id, voter_id);
+
+
+--
+-- TOC entry 2001 (class 2606 OID 1310443)
+-- Dependencies: 1998 153 150
+-- Name: competition_suite_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY competition
+    ADD CONSTRAINT competition_suite_id_fkey FOREIGN KEY (suite_id) REFERENCES competition_suite(id);
+
+
+--
+-- TOC entry 2002 (class 2606 OID 1310400)
+-- Dependencies: 151 150 1990
+-- Name: competition_widget_competition_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY competition_widget
+    ADD CONSTRAINT competition_widget_competition_id_fkey FOREIGN KEY (competition_id) REFERENCES competition(id);
+
+
+--
+-- TOC entry 2005 (class 2606 OID 1310429)
+-- Dependencies: 1994 151 152
+-- Name: competition_widget_vote_competition_widget_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY competition_widget_vote
+    ADD CONSTRAINT competition_widget_vote_competition_widget_id_fkey FOREIGN KEY (competition_widget_id) REFERENCES competition_widget(id);
+
+
+--
+-- TOC entry 2004 (class 2606 OID 1310424)
+-- Dependencies: 142 152 1984
+-- Name: competition_widget_vote_voter_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY competition_widget_vote
+    ADD CONSTRAINT competition_widget_vote_voter_id_fkey FOREIGN KEY (voter_id) REFERENCES person(id);
+
+
+--
+-- TOC entry 2003 (class 2606 OID 1310405)
+-- Dependencies: 1986 143 151
+-- Name: competition_widget_widget_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY competition_widget
+    ADD CONSTRAINT competition_widget_widget_id_fkey FOREIGN KEY (widget_id) REFERENCES widget(id);
+
+
+--
+-- TOC entry 2000 (class 2606 OID 1310288)
+-- Dependencies: 1984 143 142
+-- Name: widget_submitted_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY widget
+    ADD CONSTRAINT widget_submitted_by_fkey FOREIGN KEY (submitted_by) REFERENCES person(id);
+
+
+-- Completed on 2012-07-27 11:42:06 CDT
+
+--
+-- PostgreSQL database dump complete
+--
+
